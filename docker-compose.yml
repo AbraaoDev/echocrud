@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: echocrud-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - echocrud-net
+
+  api:
+    container_name: echocrud-api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${API_PORT}:8080"
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+      API_PORT: 8080
+    depends_on:
+      - db
+    networks:
+      - echocrud-net
+
+  frontend:
+    container_name: echocrud-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    environment:
+      NUXT_PUBLIC_API_BASE: "http://localhost:${API_PORT}/api/v1"
+    depends_on:
+      - api
+    networks:
+      - echocrud-net
+
+networks:
+  echocrud-net:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
